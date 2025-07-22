@@ -27,13 +27,16 @@
         </div>
     </nav>
 
-    <table class="table table-bordered table-hover bg-white">
+    <!-- Поле поиска -->
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Поиск по таблице...">
+
+    <table id="locationsTable" class="table table-bordered table-hover bg-white">
         <thead class="table-light">
-        <tr>
-            <th>Адрес</th>
-            <th>Описание</th>
-            <th>Действия</th>
-        </tr>
+            <tr>
+                <th>Адрес</th>
+                <th>Описание</th>
+                <th>Действия</th>
+            </tr>
         </thead>
         <tbody>
         {% for loc in locations %}
@@ -53,68 +56,48 @@
                     </button>
                     {% if user.is_superuser %}
                         <a href="{% url 'delete_location' loc.pk %}" class="btn btn-outline-danger btn-sm">Удалить</a>
-                      {% endif %}
-                    </td>
-
-                    <!-- Модальное окно для редактирования -->
-                    <div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel" aria-hidden="true">
-                      <div class="modal-dialog">
-                        <div class="modal-content">
-                          <form id="editAddressForm" method="post">
-                            {% csrf_token %}
-                            <div class="modal-header">
-                              <h5 class="modal-title" id="editAddressModalLabel">Редактировать адрес</h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                            </div>
-                            <div class="modal-body">
-                              <div class="mb-3">
-                                <label for="editAddressInput" class="form-label">Адрес</label>
-                                <input type="text" class="form-control" id="editAddressInput" name="address" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="editDescriptionInput" class="form-label">Описание</label>
-                                <textarea class="form-control" id="editDescriptionInput" name="description" rows="3" required></textarea>
-                              </div>
-                            </div>
-                            <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                              <button type="submit" class="btn btn-primary">Сохранить</button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
-                    </div>
-                    <script>
-                        const editModal = document.getElementById('editAddressModal');
-                        const form = document.getElementById('editAddressForm');
-                        const addressInput = document.getElementById('editAddressInput');
-                        const descriptionInput = document.getElementById('editDescriptionInput');
-
-                        editModal.addEventListener('show.bs.modal', event => {
-                          const button = event.relatedTarget;
-                          const locId = button.getAttribute('data-id');
-                          const address = button.getAttribute('data-address');
-                          const description = button.getAttribute('data-description');
-
-                          addressInput.value = address;
-                          descriptionInput.value = description;
-
-                          // Меняем URL в форме для отправки
-                          form.action = `/edit/${locId}/`;
-                        });
-                    </script>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 
-        <!-- Кнопка, открывающая модал -->
+    <!-- Кнопка, открывающая модальное окно добавления -->
     <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addAddressModal">
       Добавить новый адрес
     </button>
 
-    <!-- Модальное окно -->
+    <!-- Модальное окно редактирования (один раз, вне цикла) -->
+    <div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="editAddressForm" method="post">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title" id="editAddressModalLabel">Редактировать адрес</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="editAddressInput" class="form-label">Адрес</label>
+                <input type="text" class="form-control" id="editAddressInput" name="address" required>
+              </div>
+              <div class="mb-3">
+                <label for="editDescriptionInput" class="form-label">Описание</label>
+                <textarea class="form-control" id="editDescriptionInput" name="description" rows="3" required></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+              <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно добавления -->
     <div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -135,6 +118,43 @@
         </div>
       </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Скрипт для фильтрации таблицы -->
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#locationsTable tbody tr');
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+
+<!-- Скрипт для передачи данных в модальное окно редактирования -->
+<script>
+const editModal = document.getElementById('editAddressModal');
+const form = document.getElementById('editAddressForm');
+const addressInput = document.getElementById('editAddressInput');
+const descriptionInput = document.getElementById('editDescriptionInput');
+
+editModal.addEventListener('show.bs.modal', event => {
+  const button = event.relatedTarget;
+  const locId = button.getAttribute('data-id');
+  const address = button.getAttribute('data-address');
+  const description = button.getAttribute('data-description');
+
+  addressInput.value = address;
+  descriptionInput.value = description;
+
+  // Меняем URL в форме для отправки
+  form.action = `/edit/${locId}/`;
+});
+</script>
+
 </div>
+</body>
+</html>
 
