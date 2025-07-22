@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Список адресов</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+
+    <nav class="d-flex justify-content-between mb-4">
+        <h2>Список адресов</h2>
+        <div>
+            {% if user.is_authenticated %}
+                <span class="me-2">Привет, {{ user.username }}!</span>
+                <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Выход</button>
+                </form>
+                {% if is_admin %}
+                    <a class="btn btn-outline-primary btn-sm ms-2" href="{% url 'user_list' %}">Пользователи</a>
+                {% endif %}
+            {% else %}
+                <a class="btn btn-primary" href="{% url 'login' %}">Вход</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <table class="table table-bordered table-hover bg-white">
+        <thead class="table-light">
+        <tr>
+            <th>Адрес</th>
+            <th>Описание</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for loc in locations %}
+            <tr>
+                <td>{{ loc.address }}</td>
+                <td>{{ loc.description }}</td>
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-outline-warning btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editAddressModal"
+                        data-id="{{ loc.pk }}"
+                        data-address="{{ loc.address }}"
+                        data-description="{{ loc.description|escapejs }}">
+                        ✏️
+                    </button>
+                    {% if user.is_superuser %}
+                        <a href="{% url 'delete_location' loc.pk %}" class="btn btn-outline-danger btn-sm">Удалить</a>
+                      {% endif %}
+                    </td>
+
+                    <!-- Модальное окно для редактирования -->
+                    <div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <form id="editAddressForm" method="post">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="editAddressModalLabel">Редактировать адрес</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div class="mb-3">
+                                <label for="editAddressInput" class="form-label">Адрес</label>
+                                <input type="text" class="form-control" id="editAddressInput" name="address" required>
+                              </div>
+                              <div class="mb-3">
+                                <label for="editDescriptionInput" class="form-label">Описание</label>
+                                <textarea class="form-control" id="editDescriptionInput" name="description" rows="3" required></textarea>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                              <button type="submit" class="btn btn-primary">Сохранить</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                    <script>
+                        const editModal = document.getElementById('editAddressModal');
+                        const form = document.getElementById('editAddressForm');
+                        const addressInput = document.getElementById('editAddressInput');
+                        const descriptionInput = document.getElementById('editDescriptionInput');
+
+                        editModal.addEventListener('show.bs.modal', event => {
+                          const button = event.relatedTarget;
+                          const locId = button.getAttribute('data-id');
+                          const address = button.getAttribute('data-address');
+                          const description = button.getAttribute('data-description');
+
+                          addressInput.value = address;
+                          descriptionInput.value = description;
+
+                          // Меняем URL в форме для отправки
+                          form.action = `/edit/${locId}/`;
+                        });
+                    </script>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+        <!-- Кнопка, открывающая модал -->
+    <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+      Добавить новый адрес
+    </button>
+
+    <!-- Модальное окно -->
+    <div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title" id="addAddressModalLabel">Добавить новый адрес</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+              {{ form.as_p }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+              <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+
